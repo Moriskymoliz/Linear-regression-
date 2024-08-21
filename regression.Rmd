@@ -1,0 +1,418 @@
+---
+title: "Regression"
+author: "morisky"
+date: "2024-08-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## linear regresion
+
+in this session we will learn how to build a simple linear an interpret the results. lets look at women dataset
+```{r packages,include=FALSE,}
+library(tidyverse)
+library(plotly)
+```
+
+```{r data,echo=TRUE}
+head(women)
+```
+we usually thing of x-axis as the independent or explanatory. As change in height has effect on change in weight of a women. The line of best fit can be used to predict what the weight will be given height. how much in change in input variable (weight)  can be explained by output variable(height.).
+
+### visualize the relationship
+
+one can imagine that there is a relationship between the height of a woman an her weight( taller women are likely to be heavier). a quick of the data confirms this assumption.
+
+```{r plot}
+g<-women %>% 
+  ggplot(aes(height,weight))+
+  geom_point(size=3,alpha=.5)+
+  geom_smooth(method = lm,se=F)+
+  theme_bw()+
+  labs(title = "weight explained by height in women",
+       x="height (explanatory or independent variable)",
+       y="weight (explanatory or dependent variable)")
+ggplotly(g)
+```
+
+Each point in the plot above represent a single height/ weight relationship. Taken together however, these points create a pattern. As height increases, so does the weight(seemingly in linear fashion). The blue line represent the best fit line. It is our model. The distance between each observed point and the model is called the "residual"
+
+### Create a model
+
+a linear model with this data can be used i two ways:
+
+1. Determine how much of the change in height can be explained by change in height
+
+2. Predict the weight of a women, given he height( even for height not included in the original data)
+
+To create a model we simply use the lm() function. Once we have a model wee can take a look at some of the details thee within by using the summary() function. Let's take a look
+
+```{r pressure}
+model1<- lm(weight~height, data=women)
+summary(model1)
+```
+
+### interpret the results
+  
+There is some case where intercept is meaningless. example in our intercept is negative, the height of a person can't be negative. for every change in height the weight goes up by 3.45 this relationship is significant with p value of 1.09e-14 less than 0.05. the F-statistic p-value is less than 0.05. meaning one of the independent variable can explain the model. adjusted R square become important when looking at multiple regression. multiple r squared of 0.991 means that 99.1% of change in weight can be explain by change in height. 
+
+### predictive modelling
+
+we can use this model to predict the weight of a women given her height.
+```{r}
+new_data<-data.frame(height=60)
+predict(model1,new_data)
+
+```
+if the women had height of 60 then her weight will be 119.48.
+
+we can also predict  a series of weight as follows
+```{r}
+new_data<-data.frame(height=c(30,40,70))
+round(predict(model1,new_data),digits = 1)
+
+```
+
+## multiple regression
+
+it is use to predict outcome variable values based on two or more explanatory variable. the relation between each explanatory variable and the outcome variable is examine while holing other variable constant. if necessary, interaction effects can be included to understand how the relationship between variable might change in combination with each other.
+
+### adding a numeric variable
+
+adding numeric explanatory variable is exactly the same. Let's take a look at the tree dataset
+
+```{r message=FALSE, error=FALSE, warning=FALSE}
+g<-trees %>% 
+  ggplot(aes(Girth,Volume,color=Height))+
+  geom_point()+
+  geom_smooth(method = lm, se=F)+
+  theme_bw()+
+  labs(title = "Tree volume explained by girth and height")
+ggplotly(g)
+```
+
+now let's create our model and summary to take a coser look at these relationship
+
+```{r}
+attach(trees)
+lm(Volume~Girth+Height, data=trees) %>% 
+  summary()
+```
+
+### interpretation
+
+The intercept for this model is meaningless since volume of a tree can be negative. for girth increase change in growth there will be increase in tree by 4.7082 and for every increase in height there is increase in volume by 0.3393 of a tree, and this result are statistically significant since there p value (0.0145 and < 2e-16) is less than 0.05.
+
+The p value (2.2e-16) of f-statistic is less than 0.05 meaning that at least one of the independent variable can explain about the dependent variable. adjusted r square means that 94.% of change in volume can be explained by combination of change in girth and height of the tree. multiple R square means that the model explain 94% of the change in volume of the tree.
+
+## categorical variable, Effect modifiers and interaction
+
+### example
+
+Let's start by looking at the dataset **mpg** and take at the relationship between engine size( **displ**) and fuel consumption while driving on the highway (**hwy**) 
+```{r }
+head(mpg)
+```
+
+```{r message=FALSE}
+q<-mpg %>% 
+  ggplot(aes(x=displ, y=hwy))+
+  geom_jitter()+
+  geom_smooth(method=lm,se=F)+
+  theme_bw()+
+  labs(title = "Highway fuel efficiency explained by engine size",
+       x="Engine size", y="Highway fuel efficiency")
+ggplotly(q)
+```
+
+The relationship that your see shows that cars with bigger engines use less fuel. Lets ook at the simple linear model before adding new variable
+
+```{r}
+attach(mpg)
+lm(hwy~displ,data=mpg) %>% 
+  summary()
+```
+Here we ignore the intercept since it says that when engine size is zero engine efficient is 35.6977.we consider engine alone as explanatory variable, so every incremental in engine size fuel efficiency decrease by 3.53. we can see also change in engine size explains 58.6% of the change in fuel efficiency. the p value is small meaning the model is efficiency.
+
+we might expect there to be difference between four wheel drive cars and two wheel drive cars in terms of fuel efficiency and so we might want to build that into our moddel. 
+
+lets start by visualizing the data.
+in this case we shall combine front and rear wheel drive cars to create a new categorical called **2** as both cases are two drive cars.
+
+```{r message=FALSE}
+l<-mpg %>% 
+  mutate(drv=fct_recode(drv,'2'='f','2'='r' )) %>% 
+  ggplot(aes(displ,hwy,color=drv))+
+  geom_point()+
+  geom_smooth(method = lm, se=F)+
+  theme_bw()+
+  labs(title = "Highway fuel efficiency explained by engin ne size",
+       x="Engine size", y="Highway fuel efficiency")
+ggplotly(l)
+```
+
+The plot shows that both four wheel and two will are similar in relationship between engine sizes and fuel efficiency i.e in both cases it shows that cars with bigger engines use less fuel but 2 wheel drive cars seem to do better. it seems that if we move from a 4 wheel car to 2 wheel drive car we would gain certain amount of fuel efficiency. we can also note that the slope for the 4 and 2 wheel car drive  are very similar meaning that the way engine size affect fuel efficiency is consistent, regardless of wheel drive car.
+
+```{r}
+mpg %>% 
+  mutate(drv=fct_recode(drv,'2'='f','2'='r' )) %>% 
+  lm(hwy~displ+drv,data=.) %>% 
+  summary()
+```
+From the result is shows that as the engine size increase there is reduce in fuel efficiency by 2.84 while change from 4 wheel drive to 2 wheel drive car you gain a fuel efficiency of 4.9486 and its statistical significant.There is no 4 wheel drive since changing from 2 wheel drive will be meaning less. since this is a multiple regression we look at adjusted R square. 73.3% change in highway fuel efficiency can be explained by engine size and drive. The pvalue associate with f statistic is smmall, so we can be confident that the relationship that we are seeing are not by chance. The overall model does have statistically significant explanatory power.
+```{r}
+mpg %>% 
+  mutate(drv=fct_recode(drv,'2'='f','2'='r' )) %>% 
+  lm(hwy~displ*drv,data=.) %>% 
+  summary()
+```
+The results shows that there is no interaction between engine size and 2 wheel drive cars since the p value(0.857436) is greater than 0.05 hence the result are statistical insignificant. This can be explained with reference to the plot you can see that the line are parallel
+
+### example
+
+```{r warning=FALSE}
+library(palmerpenguins)
+head(penguins)
+```
+```{r warning=FALSE, message=F}
+p2<-penguins %>% 
+  ggplot(aes(bill_depth_mm,bill_length_mm))+
+  geom_point()+
+  geom_smooth(method=lm, se=F)+
+  theme_bw()+
+  labs(title = "penguin bill length explained by bill depth",
+       x="bill depth",
+       y="bill length")
+ggplotly(p2)
+```
+
+The relationship seem to be as depth goes up the bill length goes down but doesn't provide a clear picture so we can drive further on multiple regression..
+```{r message=FALSE}
+p3<-penguins %>% 
+  ggplot(aes(bill_depth_mm,bill_length_mm,color=species))+
+  geom_point(alpha=.7)+
+  geom_smooth(aes(color=species),method=lm, se=F)+
+  theme_bw()+
+  labs(title = "penguin bill length explained by bill depth",
+       x="bill depth",
+       y="bill length") 
+  ggplotly(p3)
+```
+
+we look at the relation ship within each species with bill length and depth. we notice that within each of te color cluster above, the effect of species removed because within that cluster there is only one species to consider so there can't be any effect that come from moving one species to the next.
+```{r}
+lm(bill_length_mm~bill_depth_mm+species, data = penguins) %>% 
+  summary()
+```
+All the p vaue for the f statistic is very small therefore the overall model is working. At this case the intercept isn't meaningful since the bill length can be 0. 78% change in bill length can be explained by combination of change in species and bill depth. With every incremental change in bill depth correspond to 1.39 increase in bill length.provided that model was held constant then if we move from being a adelle to being a chinstrap there will be 9.939 incremental change in bill length will to gentoo there will be 13.40 increase in bill length.
+
+### example
+
+lets look at simple linear model that consider the relationship between the weight of cars and fuel efficiency in the mtcars dataset
+```{r}
+mtcars %>% 
+  ggplot(aes(wt,mpg))+
+  geom_point()+
+  geom_smooth(method = lm, se=F)+
+  theme_bw()+
+  labs(title = 'fuel efficiency explained by weight of cars', x= 'weight of cars', y='fuel efficiency')
+```
+
+```{r}
+lm(mpg~wt, data=mtcars) %>% 
+  summary()
+```
+the results shows that as weight increase the fuel efficiency decrease by 5.34. 
+
+#### interaction on categorical variable
+
+```{r split=TRUE}
+mtcars %>% 
+  mutate(am=as.factor(am)) %>% 
+  mutate(am=fct_recode(am, 'automatic'='0', 'manual'='1')) %>% 
+  ggplot(aes(wt,mpg,color=am))+
+  geom_jitter()+
+  geom_smooth(method = lm, se=F)+
+  theme_bw()+
+  labs(title = 'fuel efficiency explained by weight of cars')
+mtcars %>% 
+  mutate(am=as.factor(am)) %>% 
+  mutate(am=fct_recode(am, 'automatic'='0', 'manual'='1')) %>%
+  lm(mpg~wt*am, data=.) %>% 
+  summary()
+
+```
+The results shows that their is prediction since the f statistic is statistical significant and the change in weight of  car variable explain 83.3% of change in efficiency of fuel. in this case the intercept is meaningless.
+It also shows that when you move from automatic to manual transmission then there will be reduction in fuel efficiency by 14.87 assuming the weight is kept constant. It also shows that interaction is statistical significant between weight of the car and the manual transmission since the p value is less than 0.05 and is negatively impacted additional by 5.3 for every increase in unit of car. The plot also show the interaction since the line have cross each other.
+
+#### interaction on categorical variable
+
+lets consider interaction with a numeri variable, in this case we wil look at horse power
+
+```{r }
+mtcars %>% 
+  lm(mpg~wt*hp, data=.) %>% 
+  summary()
+```
+The interaction between the weight nad horse power is statistical significant and resultant model is able to explain 87% of the change in fuel efficiency.
+
+The result shows that for every unit increase weight of a car  and horse power there is decrease of 8.21 and 0.12 in the fuel efficiency respectively.
+
+The interaction between the cars weight and horse power is statically significant since pvalue is less than 0.05. for heavier cars, the penalty on fuel efficiency is lower per additional horse power than in lighter cars.
+
+## selecting variable to include to the model
+
+This is is are steps to follow when selecting variable for the model.
+
+1. understand your data: look at the variable in the dataset and see what it represent. check the data for missing value and explore the data using summaries and visualizations to get a feel for the relationship and distribution.
+
+2. Define your objectives: Be clear on what you are trying to predict or explain with model. check factors are likely to influence the predicted variable.
+
+3. Univariate analysis: Examine each potential predictors individual relationship with the outcome variable via correlation coefficients for continuous variable or comparison of mean for categorical variable.
+
+4. multivariate analysis: This can be done using;
+    a. automated techniques: such akaike information criterion (AIC) but this methods sometimes leads to overfitting or ignore multicollinearity
+    b. theory/ Domain driven.
+    c. model comparison such as AIC, adjusted r-square, and based on diagnostic plots or cross validation results for predictive models.
+    
+5. check for multicollinearity. where the predictor are highly correlated with each other.
+### Example
+
+lets take a look at swiss datasets .
+```{r}
+glimpse(swiss)
+```
+#### correlation 
+
+Take a look at relationship between each explanatory and fertility to tell us if there are appropriate for the model. we shall use cor() function to create a matrix of correlation. 
+
+**NOTE** if your data has missing value (,use="complete.obs")
+```{r}
+cor(swiss) %>% 
+  round(2)
+```
+general guide interpreting:
+
+  0.3-0.7 moderate correlation
+
+  0.7-1 highly correlated
+
+In the results we can see that all possible explanatory variable are moderately corrected with fertility. We can also see that examination and education have high correlation we need close view weather to include one or all to the final model.
+#### AIC method.
+
+when comparing model a lower AIC value indicates a better model. The key idea behind the AIC is to find a model that offers a good trade off between fewer parameters and fitting the data well, helping to avoid over fitting and under fitting. This method is mostly used when dealing large datasets and multiple potential explanatory variable.
+lets use AIC method to identify the best combination of explanatory variable to predict fertility.
+
+```{r message=FALSE}
+library(MASS)
+names(swiss)
+```
+This are the variable names in the swiss dataset.
+```{r}
+lm(Fertility~.,data = swiss) %>% 
+  step(direction = "backward",trace = 0) %>% 
+  summary()
+```
+
+The AIC method have excluded examination and this explanatory variable selected contribute 69.93% to the output variable. 
+
+## Regression assumption
+
+```{r echo=FALSE}
+model1<-lm(mpg~wt,data=mtcars)
+```
+
+### 1. linear relationship between the explanatory and outcome vriable
+This assumption is proven through scatter plot to cheak for linear relationship.
+```{r}
+mtcars %>% 
+  mutate(fitted=fitted(model1)) %>% 
+  mutate(residual=residuals(model1)) %>% 
+  ggplot(aes(fitted,residual))+
+  geom_point()+
+  geom_hline(yintercept = 0,color='red', linetype="dashed")+
+  theme_bw()+
+  labs(title = "Residual vs fitted", x="fitted values", y='residual')
+```
+The residual should be scattered randomly around horizontal axis( which represent the residual value of 0). if the points are symmetrically distributed around a horizontal line without distinct patterns, its sign of linearity. There should not be a pattern.
+
+**statistical test**
+```{r,warning=FALSE}
+library(lmtest)
+harvtest(model1)
+```
+$H_0$ there is linear relationship. so p-value less than 0.05 will make us reject the assumption that the relationship between the two variable is linear.in this case the p value is greater than 0.05 so the result are statistical significant.
+
+### 2. residual are normally distributed
+This can be shown using histogram, qqplot ( the point should go along the diagnostic line),
+
+**statistical test**
+```{r}
+shapiro.test(residuals(model1))
+```
+$H_o$ the data is normally distributed.if the pvalue is less than alpha we reject the null hypothesis indicating that data deviates from a normal distribution
+in this case the p value is larger than 0.05 indicating that the dataset is normally distributed.
+
+### 3. residual are homoscedastic
+The variance should be evenly distributed
+
+**statistical test** breush pangan test
+```{r}
+bptest(model1)
+```
+$H_o$ the data is homoscedasticity.if the pvalue is less than alpha we reject the null hypothesis indicating that data deviates from a homoscedasticity.
+in our case the pvalue is greater than 0.05 so the residual values are independent.
+
+### 4. the residual are independent
+
+a definitive method of determining indpendence is o use Durbin atson test.(car package)
+```{r warning=FALSE}
+library(car)
+durbinWatsonTest(model1)
+```
+ A Dw statistic of close to 2 suggest that there is no autocorrelation while a value below 2 suggest positive autocorrelation and above 2 suggest negative autocorrelation. 
+in our case the value of 0.89 suggest a positive autocorrelation.
+
+## other considerations
+
+### outliers
+
+outliers are the extreme values.
+This are the values that tell us how well the observed value fit the model. Extreme values in the data itself may well fit the model very well within very small residual values.
+```{r}
+plot(model1, which = 5)
+```
+
+#### collinearity.
+
+This is relvant for multiple linear regression (where there are multiple predictors). It is the idea the predictor should not be prefect corrected with each other. perfect multicollinearity means one predictor can be linearly predicted from other.
+
+lets look at mtcars and the explanatory variable horse power and engine size as predictor of fuel efficiency.
+
+```{r}
+round(cor(mtcars[c('mpg','disp','hp')]),digit=2)
+```
+its clear that both explanatory variable are corrected with mpg and also have high correlation with each other.one might consider excluding one of them from the mode because with respect to explaining one of them from an overlapping contribution.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
